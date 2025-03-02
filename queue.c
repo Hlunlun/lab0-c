@@ -13,7 +13,11 @@
 /* Create an empty queue */
 struct list_head *q_new()
 {
-    return NULL;
+    struct list_head *q = malloc(sizeof(struct list_head));
+    if (q == NULL)
+        return NULL;
+    INIT_LIST_HEAD(q);
+    return q;
 }
 
 /* Free all storage used by queue */
@@ -61,17 +65,7 @@ int q_size(struct list_head *head)
 bool q_delete_mid(struct list_head *head)
 {
     // https://leetcode.com/problems/delete-the-middle-node-of-a-linked-list/
-    struct list_head *dummy =
-        (struct list_head *) malloc(sizeof(struct list_head));
-    dummy->next = head;
-    struct list_head *slow = dummy;
-    struct list_head *fast = dummy;
-    while (fast && fast->next) {
-        slow = slow->next;
-        fast = fast->next->next;
-    }
-    slow->next = slow->next->next;
-    return true;
+    return NULL;
 }
 
 /* Delete all nodes that have duplicate string */
