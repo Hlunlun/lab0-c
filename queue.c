@@ -25,7 +25,8 @@ void q_free(struct list_head *head)
 {
     element_t *entry = NULL, *safe;
     list_for_each_entry_safe (entry, safe, head, list) {
-        list_del_init(&entry->list);
+        // list_del_init(&entry->list);
+        free(entry->value);
         free(entry);
     }
     free(head);
@@ -153,6 +154,27 @@ bool q_delete_dup(struct list_head *head)
 void q_swap(struct list_head *head)
 {
     // https://leetcode.com/problems/swap-nodes-in-pairs/
+    if (!head || list_empty(head) || !head->next)
+        return;
+
+    struct list_head **indirect = &head, *node = NULL, *safe;
+    list_for_each_safe (node, safe, head) {
+        if (safe == head)
+            return;
+
+        struct list_head *next_node = safe->next;
+        struct list_head *prev_node = node->prev;
+        *indirect = safe;
+        node->next = next_node;
+        node->prev = safe;
+        next_node->prev = node;
+        safe->next = node;
+        safe->prev = prev_node;
+        prev_node->next = safe;
+        indirect = &node->next;
+        node = node->next;
+        safe = node->next->next;
+    }
 }
 
 /* Reverse elements in queue */
