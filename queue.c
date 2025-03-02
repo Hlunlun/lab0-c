@@ -54,18 +54,48 @@ bool q_insert_head(struct list_head *head, char *s)
 /* Insert an element at tail of queue */
 bool q_insert_tail(struct list_head *head, char *s)
 {
+    if (!head)
+        return false;
+    element_t *element = malloc(sizeof(element_t));
+    if (!element)
+        return false;
+    struct list_head *node = &element->list;
+    INIT_LIST_HEAD(node);
+    element->value = s;
+    if (!element->value) {
+        free(element);
+        return false;
+    }
+    list_add_tail(node, head);
     return true;
 }
 
 /* Remove an element from head of queue */
 element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 {
-    return NULL;
+    if (!head || list_empty(head))
+        return NULL;
+    element_t *entry = list_first_entry(head, element_t, list);
+    list_del_init(&entry->list);
+    if (sp) {
+        strncpy(sp, entry->value, bufsize - 1);
+        sp[bufsize - 1] = '\0';
+    }
+    return entry;
 }
 
 /* Remove an element from tail of queue */
 element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 {
+    if (!head || list_empty(head))
+        return NULL;
+    element_t *entry = list_last_entry(head, element_t, list);
+    list_del_init(&entry->list);
+    if (sp) {
+        strncpy(sp, entry->value, bufsize - 1);
+        sp[bufsize - 1] = '\0';
+    }
+
     return NULL;
 }
 
@@ -87,13 +117,35 @@ int q_size(struct list_head *head)
 bool q_delete_mid(struct list_head *head)
 {
     // https://leetcode.com/problems/delete-the-middle-node-of-a-linked-list/
-    return NULL;
+    if (!head || list_empty(head))
+        return false;
+    int step = q_size(head) / 2;
+    struct list_head **indirect = &head;
+    while (step) {
+        indirect = &(*indirect)->next;
+        step--;
+    }
+    *indirect = (*indirect)->next;
+    list_del((*indirect)->prev);
+    free(*indirect);
+    return true;
 }
 
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
     // https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
+    if (!head || list_empty(head))
+        return false;
+
+    element_t *entry = NULL, *safe = NULL;
+    list_for_each_entry_safe (entry, safe, head, list) {
+        if (&safe->list != head && !strcmp(entry->value, safe->value)) {
+            list_del_init(&entry->list);
+            free(&entry->list);
+            free(entry);
+        }
+    }
     return true;
 }
 
