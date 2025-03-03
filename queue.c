@@ -25,7 +25,6 @@ void q_free(struct list_head *head)
 {
     element_t *entry = NULL, *safe;
     list_for_each_entry_safe (entry, safe, head, list) {
-        // list_del_init(&entry->list);
         free(entry->value);
         free(entry);
     }
@@ -217,5 +216,6 @@ int q_descend(struct list_head *head)
 int q_merge(struct list_head *head, bool descend)
 {
     // https://leetcode.com/problems/merge-k-sorted-lists/
+
     return 0;
 }
