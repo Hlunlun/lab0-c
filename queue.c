@@ -42,7 +42,7 @@ bool q_insert_head(struct list_head *head, char *s)
         return false;
     struct list_head *node = &element->list;
     INIT_LIST_HEAD(node);
-    element->value = s;
+    element->value = strdup(s);
     if (!element->value) {
         free(element);
         return false;
