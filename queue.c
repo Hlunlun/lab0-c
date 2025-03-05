@@ -78,11 +78,9 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
     element_t *entry = list_first_entry(head, element_t, list);
     list_del_init(&entry->list);
     if (sp) {
-        size_t size = strlen(entry->value) < (bufsize - 1)
-                          ? strlen(entry->value)
-                          : (bufsize - 1);
-        strncpy(sp, entry->value, size);
-        sp[size] = '\0';
+        size_t dlen = strnlen(entry->value, bufsize - 1);
+        mempcpy(sp, entry->value, dlen);
+        *(sp + dlen) = 0;
     }
     return entry;
 }
@@ -95,11 +93,9 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
     element_t *entry = list_last_entry(head, element_t, list);
     list_del_init(&entry->list);
     if (sp) {
-        size_t size = strlen(entry->value) < (bufsize - 1)
-                          ? strlen(entry->value)
-                          : (bufsize - 1);
-        strncpy(sp, entry->value, size);
-        sp[size] = '\0';
+        size_t dlen = strnlen(entry->value, bufsize - 1);
+        mempcpy(sp, entry->value, dlen);
+        *(sp + dlen) = 0;
     }
 
     return NULL;
@@ -195,7 +191,21 @@ void q_reverse(struct list_head *head)
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
-    // https://leetcode.com/problems/reverse-nodes-in-k-group/
+    if (!head || list_empty(head) || list_is_singular(head) || k <= 1 ||
+        k > q_size(head))
+        return;
+
+    int count = k;
+    struct list_head *node = head->next, *safe = node->next;
+    while (count--) {
+        node->next = safe->next;
+        node->prev = safe;
+        node = safe;
+        safe = node->next;
+    }
+
+    q_reverseK(node, k);
+    return;
 }
 
 /* Sort elements of queue in ascending/descending order */
