@@ -76,10 +76,10 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
     if (!head || list_empty(head))
         return NULL;
     element_t *entry = list_first_entry(head, element_t, list);
-    list_del_init(&entry->list);
+    list_del(&entry->list);
     if (sp) {
         size_t dlen = strnlen(entry->value, bufsize - 1);
-        mempcpy(sp, entry->value, dlen);
+        strncpy(sp, entry->value, dlen);
         *(sp + dlen) = 0;
     }
     return entry;
@@ -91,14 +91,14 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
     if (!head || list_empty(head))
         return NULL;
     element_t *entry = list_last_entry(head, element_t, list);
-    list_del_init(&entry->list);
+    list_del(&entry->list);
     if (sp) {
         size_t dlen = strnlen(entry->value, bufsize - 1);
-        mempcpy(sp, entry->value, dlen);
+        strncpy(sp, entry->value, dlen);
         *(sp + dlen) = 0;
     }
 
-    return NULL;
+    return entry;
 }
 
 /* Return number of elements in queue */
@@ -120,15 +120,16 @@ bool q_delete_mid(struct list_head *head)
 {
     if (!head || list_empty(head))
         return false;
-    int step = q_size(head) / 2;
-    struct list_head **indirect = &head;
-    while (step) {
-        indirect = &(*indirect)->next;
-        step--;
-    }
-    *indirect = (*indirect)->next;
-    list_del((*indirect)->prev);
-    free(*indirect);
+
+    struct list_head **indir = &(head->next);
+    for (const struct list_head *fast = head->next;
+         fast != head && fast->next != head; fast = fast->next->next)
+        indir = &(*indir)->next;
+
+    element_t *entry = list_entry(*indir, element_t, list);
+    list_del(*indir);
+    free(entry->value);
+    free(entry);
     return true;
 }
 
