@@ -79,7 +79,7 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
     list_del(&entry->list);
     if (sp) {
         size_t dlen = strnlen(entry->value, bufsize - 1);
-        strncpy(sp, entry->value, dlen);
+        mempcpy(sp, entry->value, dlen);
         *(sp + dlen) = 0;
     }
     return entry;
@@ -94,10 +94,9 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
     list_del(&entry->list);
     if (sp) {
         size_t dlen = strnlen(entry->value, bufsize - 1);
-        strncpy(sp, entry->value, dlen);
+        mempcpy(sp, entry->value, dlen);
         *(sp + dlen) = 0;
     }
-
     return entry;
 }
 
@@ -136,15 +135,28 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
-    if (!head || list_empty(head))
+    if (!head || list_empty(head) || list_is_singular(head))
         return false;
 
-    element_t *entry = NULL, *safe = NULL;
-    list_for_each_entry_safe (entry, safe, head, list) {
-        if (&safe->list != head && !strcmp(entry->value, safe->value)) {
-            list_del_init(&entry->list);
-            free(&entry->list);
-            free(entry);
+    struct list_head **indir = &(head->next);
+    while (*indir != head) {
+        struct list_head *cur = *indir;
+        element_t *entry = list_entry(cur, element_t, list);
+        if (cur->next != head &&
+            !strcmp(entry->value,
+                    list_entry(cur->next, element_t, list)->value)) {
+            const char *str = entry->value;
+
+            while (cur != head && !strcmp(entry->value, str)) {
+                struct list_head *next = cur->next;
+                free(entry->value);
+                free(entry);
+                cur = next;
+                entry = list_entry(next, element_t, list);
+            }
+            *indir = cur;
+        } else {
+            indir = &(*indir)->next;
         }
     }
     return true;
