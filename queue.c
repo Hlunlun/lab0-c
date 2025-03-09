@@ -283,10 +283,5 @@ int q_merge(struct list_head *head, bool descend)
         list_del(&cur->chain);
     }
 
-    struct list_head *pos = NULL;
-    size_t count = 0;
-    list_for_each(pos, first->q)
-        count++;
-
-    return count;
+    return q_size(first->q);
 }
