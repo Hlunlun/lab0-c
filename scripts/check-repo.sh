@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
-# Source the common utilities
-source "$(dirname "$0")/common.sh"
+# Ensure that the common script exists and is readable, then verify it has no
+# syntax errors and defines the required function.
+common_script="$(dirname "$0")/common.sh"
+[ -r "$common_script" ] || { echo "[!] '$common_script' not found or not readable." >&2; exit 1; }
+bash -n "$common_script" >/dev/null 2>&1 || { echo "[!] '$common_script' contains syntax errors." >&2; exit 1; }
+source "$common_script"
+declare -F set_colors >/dev/null 2>&1 || { echo "[!] '$common_script' does not define the required function." >&2; exit 1; }
+
+set_colors
 
 check_github_actions
 
@@ -58,7 +65,7 @@ REPO_NAME="lab0-c"
 repo_html=$(curl -s "https://github.com/${REPO_OWNER}/${REPO_NAME}")
 
 # Extract the default branch name from data-default-branch="..."
-DEFAULT_BRANCH=$(echo "$repo_html" | grep -oP "/${REPO_OWNER}/${REPO_NAME}/blob/\K[^/]+(?=/LICENSE)" | head -n 1)
+DEFAULT_BRANCH=$(echo "$repo_html" | sed -nE "s#.*${REPO_OWNER}/${REPO_NAME}/blob/([^/]+)/LICENSE.*#\1#p" | head -n 1)
 
 if [ "$DEFAULT_BRANCH" != "master" ]; then
   echo "$DEFAULT_BRANCH"
@@ -73,8 +80,7 @@ curl -sSL -o "$temp_file" "$COMMITS_URL"
 
 # general grep pattern that finds commit links
 upstream_hash=$(
-  grep -Po 'href="[^"]*/commit/\K[0-9a-f]{40}' "$temp_file" \
-  | head -n 1
+  sed -nE 's/.*href="[^"]*\/commit\/([0-9a-f]{40}).*/\1/p' "$temp_file" | head -n 1
 )
 
 rm -f "$temp_file"

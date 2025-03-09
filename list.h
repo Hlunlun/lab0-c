@@ -90,13 +90,13 @@ static inline void INIT_LIST_HEAD(struct list_head *head)
 }
 
 /**
- * list_add - Insert a node at the beginning of a circular list
+ * list_add - Insert a node after a given node in a circular list
  * @node: Pointer to the list_head structure to add.
- * @head: Pointer to the list_head structure representing the list head.
+ * @head: Pointer to the list_head structure after which to add the new node.
  *
  * Adds the specified @node immediately after @head in a circular doubly-linked
- * list, effectively placing it at the beginning. The existing first node, if
- * any, shifts to follow @node, and the list's circular structure is maintained.
+ * list. The node that previously followed @head will now follow @node, and the
+ * list's circular structure is maintained.
  */
 static inline void list_add(struct list_head *node, struct list_head *head)
 {
@@ -411,6 +411,12 @@ static inline void list_move_tail(struct list_head *node,
     for (entry = list_entry((head)->next, typeof(*entry), member); \
          &entry->member != (head);                                 \
          entry = list_entry(entry->member.next, typeof(*entry), member))
+#else
+/* The negative width bit-field makes a compile-time error for use of this. It
+ * works in the same way as BUILD_BUG_ON_ZERO macro of Linux kernel.
+ */
+#define list_for_each_entry(entry, head, member) \
+    for (entry = (void *) 1; sizeof(struct { int i : -1; }); ++(entry))
 #endif
 
 /**
@@ -450,6 +456,10 @@ static inline void list_move_tail(struct list_head *node,
         safe = list_entry(entry->member.next, typeof(*entry), member); \
          &entry->member != (head); entry = safe,                       \
         safe = list_entry(safe->member.next, typeof(*entry), member))
+#else
+#define list_for_each_entry_safe(entry, safe, head, member)         \
+    for (entry = safe = (void *) 1; sizeof(struct { int i : -1; }); \
+         ++(entry), ++(safe))
 #endif
 
 #undef __LIST_HAVE_TYPEOF
