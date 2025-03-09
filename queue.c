@@ -234,6 +234,16 @@ int q_descend(struct list_head *head)
     return 0;
 }
 
+bool cmp(const struct list_head *a, const struct list_head *b, bool descend)
+{
+    if (descend)
+        return list_entry(a, element_t, list)->value >
+               list_entry(b, element_t, list)->value;
+
+    return list_entry(a, element_t, list)->value <
+           list_entry(b, element_t, list)->value;
+}
+
 struct list_head *_q_merge(struct list_head *head1,
                            struct list_head *head2,
                            bool descend)
@@ -246,20 +256,19 @@ struct list_head *_q_merge(struct list_head *head1,
     struct list_head *head = NULL, **ptr = &head, **node;
     struct list_head *l1 = head1->next, *l2 = head2->next;
     for (node = NULL; l1 != head1 && l2 != head2; *node = (*node)->next) {
-        element_t *entry1 = list_entry(l1, element_t, list);
-        element_t *entry2 = list_entry(l2, element_t, list);
-
-        if (descend) {
-            node = entry1->value > entry2->value ? &l1 : &l2;
-        } else {
-            node = entry1->value < entry2->value ? &l1 : &l2;
-        }
-        list_add(*node, *ptr);
-
+        node = cmp(l1, l2, descend) ? &l1 : &l2;
+        *ptr = node;
         ptr = &(*ptr)->next;
     }
 
     l1 ? list_add(l1, *ptr) : list_add(l2, *ptr);
+
+    do {
+        (*node)->prev = *ptr;
+        *ptr = *node;
+        node = &(*node)->next;
+    } while (node);
+
     return head;
 }
 
@@ -283,5 +292,6 @@ int q_merge(struct list_head *head, bool descend)
         list_del(&cur->chain);
     }
 
-    return q_size(first->q);
+    first->size = q_size(first->q);
+    return first->size;
 }
