@@ -6,7 +6,9 @@ CFLAGS += -Wvla
 
 GIT_HOOKS := .git/hooks/applied
 DUT_DIR := dudect
-all: $(GIT_HOOKS) qtest
+all: $(GIT_HOOKS) qtest fmtscan
+
+UNAME_S := $(shell uname -s)
 
 tid := 0
 
@@ -53,6 +55,15 @@ qtest: $(OBJS)
 	$(VECHO) "  CC\t$@\n"
 	$(Q)$(CC) -o $@ $(CFLAGS) -c -MMD -MF .$@.d $<
 
+fmtscan: tools/fmtscan.c
+ifeq ($(UNAME_S),Darwin)
+	$(Q)printf "#!/usr/bin/env bash\nexit 0\n" > $@
+	$(Q)chmod +x $@
+else
+	$(VECHO) "  CC+LD\t$@\n"
+	$(Q)$(CC) -o $@ $(CFLAGS) $< -lrt -lpthread
+endif
+
 check: qtest
 	./$< -v 3 -f traces/trace-eg.cmd
 
@@ -76,7 +87,7 @@ valgrind: valgrind_existence
 	@echo "scripts/driver.py -p $(patched_file) --valgrind -t <tid>"
 
 clean:
-	rm -f $(OBJS) $(deps) *~ qtest /tmp/qtest.*
+	rm -f $(OBJS) $(deps) *~ qtest /tmp/qtest.* fmtscan
 	rm -rf .$(DUT_DIR)
 	rm -rf *.dSYM
 	(cd traces; rm -f *~)
