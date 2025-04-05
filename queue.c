@@ -19,8 +19,7 @@ void q_free(struct list_head *head)
 {
     element_t *entry = NULL, *safe;
     list_for_each_entry_safe(entry, safe, head, list) {
-        free(entry->value);
-        free(entry);
+        q_release_element(entry);
     }
     free(head);
     return;
@@ -215,8 +214,125 @@ void q_reverseK(struct list_head *head, int k)
     return;
 }
 
+bool cmp(const struct list_head *a, const struct list_head *b, bool descend)
+{
+    if (descend)
+        return list_entry(a, element_t, list)->value >
+               list_entry(b, element_t, list)->value;
+
+    return list_entry(a, element_t, list)->value <
+           list_entry(b, element_t, list)->value;
+}
+
+struct list_head *merge(bool descend, struct list_head *a, struct list_head *b)
+{
+    struct list_head *head = NULL, **tail = &head;
+
+    for (;;) {
+        if (cmp(a, b, descend)) {
+            *tail = a;
+            tail = &a->next;
+            a = a->next;
+            if (!a) {
+                *tail = b;
+                break;
+            }
+        } else {
+            *tail = b;
+            tail = &b->next;
+            b = b->next;
+            if (!b) {
+                *tail = a;
+                break;
+            }
+        }
+    }
+    return head;
+}
+
+void merge_final(bool descend,
+                 struct list_head *head,
+                 struct list_head *a,
+                 struct list_head *b)
+{
+    struct list_head *tail = head;
+
+    for (;;) {
+        if (cmp(a, b, descend)) {
+            tail->next = a;
+            a->prev = tail;
+            tail = a;
+            a = a->next;
+            if (!a)
+                break;
+        } else {
+            tail->next = b;
+            b->prev = tail;
+            tail = b;
+            b = b->next;
+            if (!b) {
+                b = a;
+                break;
+            }
+        }
+    }
+
+    tail->next = b;
+    do {
+        b->prev = tail;
+        tail = b;
+        b = b->next;
+    } while (b);
+
+    tail->next = head;
+    head->prev = tail;
+}
+
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    struct list_head *list = head->next, *pending = NULL;
+    size_t count = 0;
+
+    head->prev->next = NULL;
+
+    do {
+        size_t bits;
+        struct list_head **tail = &pending;
+
+        for (bits = count; bits & 1; bits >>= 1)
+            tail = &(*tail)->prev;
+
+        if (bits) {
+            struct list_head *a = *tail, *b = a->prev;
+
+            a = merge(descend, b, a);
+            a->prev = b->prev;
+            *tail = a;
+        }
+
+        list->prev = pending;
+        pending = list;
+        list = list->next;
+        pending->next = NULL;
+        count++;
+    } while (list);
+
+    list = pending;
+    pending = pending->prev;
+    for (;;) {
+        struct list_head *next = pending->prev;
+
+        if (!next)
+            break;
+        list = merge(descend, pending, list);
+        pending = next;
+    }
+    merge_final(descend, head, pending, list);
+}
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
@@ -234,16 +350,6 @@ int q_descend(struct list_head *head)
     return 0;
 }
 
-bool cmp(const struct list_head *a, const struct list_head *b, bool descend)
-{
-    if (descend)
-        return list_entry(a, element_t, list)->value >
-               list_entry(b, element_t, list)->value;
-
-    return list_entry(a, element_t, list)->value <
-           list_entry(b, element_t, list)->value;
-}
-
 struct list_head *_q_merge(struct list_head *head1,
                            struct list_head *head2,
                            bool descend)
@@ -257,7 +363,7 @@ struct list_head *_q_merge(struct list_head *head1,
     struct list_head *l1 = head1->next, *l2 = head2->next;
     for (node = NULL; l1 != head1 && l2 != head2; *node = (*node)->next) {
         node = cmp(l1, l2, descend) ? &l1 : &l2;
-        *ptr = node;
+        *ptr = *node;
         ptr = &(*ptr)->next;
     }
 
