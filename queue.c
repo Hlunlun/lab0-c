@@ -163,16 +163,18 @@ void q_swap(struct list_head *head)
 
     struct list_head *node = NULL, *safe = NULL;
     list_for_each_safe(node, safe, head) {
-        struct list_head *pos = safe->prev;
-        list_del(safe);
+        if (safe == head)
+            return;
 
-        safe->next = node->next;
-        safe->next->prev = safe;
-        safe->prev = node->prev;
+        struct list_head *next = safe->next;
+        struct list_head *prev = node->prev;
+
+        safe->prev = prev;
+        safe->next = node;
         node->prev = safe;
-        if (pos == node)
-            pos = safe;
-        list_add(node, pos);
+        node->next = next;
+        prev->next = safe;
+        next->prev = node;
 
         safe = node->next;
     }
@@ -220,7 +222,7 @@ bool cmp(const struct list_head *a, const struct list_head *b, bool descend)
         return list_entry(a, element_t, list)->value >
                list_entry(b, element_t, list)->value;
 
-    return list_entry(a, element_t, list)->value <
+    return list_entry(a, element_t, list)->value <=
            list_entry(b, element_t, list)->value;
 }
 
