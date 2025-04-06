@@ -8,8 +8,10 @@
 struct list_head *q_new()
 {
     struct list_head *q = malloc(sizeof(struct list_head));
-    if (!q)
-        return NULL;
+    // if (!q)
+    //     return NULL;
+    while (q == NULL)
+        q = malloc(sizeof(struct list_head));
     INIT_LIST_HEAD(q);
     return q;
 }
@@ -37,7 +39,7 @@ bool q_insert_head(struct list_head *head, char *s)
     INIT_LIST_HEAD(node);
     element->value = strdup(s);
     if (!element->value) {
-        free(element);
+        q_release_element(element);
         return false;
     }
     list_add(node, head);
@@ -56,7 +58,7 @@ bool q_insert_tail(struct list_head *head, char *s)
     INIT_LIST_HEAD(node);
     element->value = strdup(s);
     if (!element->value) {
-        free(element);
+        q_release_element(element);
         return false;
     }
     list_add_tail(node, head);
@@ -128,28 +130,20 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
-    if (!head || list_empty(head) || list_is_singular(head))
+    if (!head || list_empty(head))
         return false;
 
-    struct list_head **indir = &(head->next);
-    while (*indir != head) {
-        struct list_head *cur = *indir;
-        element_t *entry = list_entry(cur, element_t, list);
-        if (cur->next != head &&
-            !strcmp(entry->value,
-                    list_entry(cur->next, element_t, list)->value)) {
-            const char *str = entry->value;
-
-            while (cur != head && !strcmp(entry->value, str)) {
-                struct list_head *next = cur->next;
-                free(entry->value);
-                free(entry);
-                cur = next;
-                entry = list_entry(next, element_t, list);
-            }
-            *indir = cur;
-        } else {
-            indir = &(*indir)->next;
+    bool dup = false;
+    element_t *node, *safe;
+    list_for_each_entry_safe(node, safe, head, list) {
+        if (&safe->list != head && !strcmp(node->value, safe->value)) {
+            list_del(&node->list);
+            q_release_element(node);
+            dup = true;
+        } else if (dup) {
+            list_del(&node->list);
+            q_release_element(node);
+            dup = false;
         }
     }
     return true;
