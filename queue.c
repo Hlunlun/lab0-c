@@ -218,12 +218,13 @@ void q_reverseK(struct list_head *head, int k)
 
 bool cmp(const struct list_head *a, const struct list_head *b, bool descend)
 {
-    if (descend)
-        return list_entry(a, element_t, list)->value >
-               list_entry(b, element_t, list)->value;
+    element_t const *e1 = list_entry(a, element_t, list);
+    element_t const *e2 = list_entry(b, element_t, list);
 
-    return list_entry(a, element_t, list)->value <=
-           list_entry(b, element_t, list)->value;
+    if (descend)
+        return strcmp(e1->value, e2->value) >= 0;
+
+    return strcmp(e1->value, e2->value) <= 0;
 }
 
 struct list_head *merge(bool descend, struct list_head *a, struct list_head *b)
