@@ -197,17 +197,24 @@ void q_reverseK(struct list_head *head, int k)
         k > q_size(head))
         return;
 
-    int count = k;
-    struct list_head *node = head->next, *safe = node->next;
-    while (count--) {
-        node->next = safe->next;
-        node->prev = safe;
-        node = safe;
-        safe = node->next;
-    }
+    int times = q_size(head) / k;
+    struct list_head *tail = NULL;
 
-    q_reverseK(node, k);
-    return;
+    LIST_HEAD(tmp);
+    LIST_HEAD(new_head);
+
+    for (int i = 0; i < times; i++) {
+        int j = 0;
+        list_for_each(tail, head) {
+            if (j >= k)
+                break;
+            j++;
+        }
+        list_cut_position(&tmp, head, tail->prev);
+        q_reverse(&tmp);
+        list_splice_tail(&tmp, &new_head);
+    }
+    list_splice(&new_head, head);
 }
 
 bool cmp(const struct list_head *a, const struct list_head *b, bool descend)
