@@ -386,62 +386,30 @@ int q_descend(struct list_head *head)
     return q_size(head);
 }
 
-int _q_merge(struct list_head *head1, struct list_head *head2, bool descend)
-{
-    if (!head2 || list_empty(head2))
-        return 0;
-    if (!head1 || list_empty(head1)) {
-        if (!list_empty(head2))
-            list_splice_tail(head2->next, head1);
-        return q_size(head1);
-    }
-    LIST_HEAD(tmp_head);
-
-    struct list_head *head = NULL, **ptr = &head, **node;
-    struct list_head *l1 = head1->next, *l2 = head2->next;
-    for (node = NULL; l1 != head1 && l2 != head2; *node = (*node)->next) {
-        node = cmp(l1, l2, descend) ? &l1 : &l2;
-        *ptr = *node;
-        ptr = &(*ptr)->next;
-    }
-
-    *ptr = l1 ? l1 : l2;
-
-    struct list_head *cur = head, *prev = cur;
-    while (cur != head1 && cur != head2) {
-        struct list_head *next = cur->next;
-        cur->next->prev = cur;
-        prev = cur;
-        cur = next;
-    }
-    head1->next = head;
-    head->prev = head1;
-    head1->prev = prev;
-    prev->next = head1;
-    return q_size(head1);
-}
-
-/* Merge all the queues into one sorted queue, which is in ascending/descending
- * order */
 int q_merge(struct list_head *head, bool descend)
 {
-    if (!head || list_empty(head))
-        return 0;
+    if (!head || list_empty(head) || list_is_singular(head))
+        return q_size(list_entry(head->next, queue_contex_t, chain)->q);
 
-    queue_contex_t *first = list_first_entry(head, queue_contex_t, chain);
+    queue_contex_t *first = list_entry(head->next, queue_contex_t, chain);
+    struct list_head *first_q = first->q;
+    size_t size = first->size;
 
-    if (list_is_singular(head))
-        return q_size(first->q);
+    struct list_head *pos, *safe;
+    list_for_each_safe(pos, safe, head) {
+        if (pos == head->next)
+            continue;
 
-    queue_contex_t *second =
-        list_first_entry(first->chain.next, queue_contex_t, chain);
+        queue_contex_t *ctx = list_entry(pos, queue_contex_t, chain);
+        struct list_head *current_queue = ctx->q;
 
-    size_t count = q_size(head);
-    size_t size = 0;
-    for (int i = 0; i < count - 2; i++) {
-        size = _q_merge(first->q, second->q, descend);
-        second = list_first_entry(second->chain.next, queue_contex_t, chain);
+        if (!list_empty(current_queue)) {
+            list_splice_tail_init(current_queue, first_q);
+            size += ctx->size;
+            ctx->size = 0;
+        }
     }
-
+    q_sort(first_q, descend);
+    first->size = size;
     return size;
 }
