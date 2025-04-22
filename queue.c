@@ -413,3 +413,46 @@ int q_merge(struct list_head *head, bool descend)
     first->size = size;
     return size;
 }
+
+
+static inline void replace(struct list_head *old, struct list_head *new)
+{
+    new->next = old->next;
+    new->prev = old->prev;
+    new->next->prev = new;
+    new->prev->next = new;
+}
+
+
+static inline void swap(struct list_head *a, struct list_head *b)
+{
+    struct list_head *pos = b->prev;
+
+    list_del(b);
+    replace(a, b);
+    if (pos == a)
+        pos = b;
+    list_add(a, pos);
+}
+
+/* Fisher-Yates shuffle Algorithm */
+void q_shuffle(struct list_head *head)
+{
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    size_t len = q_size(head);
+    struct list_head *pos, *temp;
+
+    for (pos = head->prev, temp = pos->prev; pos != head && len;
+         pos = temp, temp = pos->prev, len--) {
+        struct list_head *pick = head->prev;
+        for (int r = rand() % len; r > 0; r--)
+            pick = pick->prev;
+
+        if (pick == pos)
+            continue;
+
+        swap(pos, pick);
+    }
+}

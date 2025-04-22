@@ -86,6 +86,9 @@ typedef enum {
 /* Forward declarations */
 static bool q_show(int vlevel);
 
+/* Declaration of os_random for do_shuffle */
+uintptr_t os_random(uintptr_t seed);
+
 static bool do_free(int argc, char *argv[])
 {
     if (argc != 1) {
@@ -912,6 +915,33 @@ static bool do_merge(int argc, char *argv[])
     q_show(3);
     return ok && !error_check();
 }
+/*
+static bool do_shuffle(int argc, char *argv[])
+{
+    if (argc != 1) {
+        report(1, "%s takes too much arguments", argv[0]);
+        return false;
+    }
+
+    if (!current || !current->q) {
+        report(3, "Warning: Calling suffle on null queue");
+        return false;
+    }
+    error_check();
+
+    set_noallocate_mode(true);
+    if (exception_setup(true)){
+        srand(os_random(getpid() ^ getppid()));
+        q_shuffle(current->q);
+    }
+    exception_cancel();
+
+    set_noallocate_mode(false);
+
+    q_show(3);
+    return !error_check();
+}
+*/
 
 static bool is_circular()
 {
@@ -1096,6 +1126,7 @@ static void console_init()
                 "");
     ADD_COMMAND(reverseK, "Reverse the nodes of the queue 'K' at a time",
                 "[K]");
+    // ADD_COMMAND(shuffle, "Shuffle the nodes in queue", "");
     add_param("length", &string_length, "Maximum length of displayed string",
               NULL);
     add_param("malloc", &fail_probability, "Malloc failure probability percent",
